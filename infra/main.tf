@@ -131,6 +131,9 @@ resource "aws_security_group" "alb" {
   tags = { Name = "${local.name}-alb-sg" }
 }
 
+# Temporary, time-boxed egress exception: private instances currently use NAT for OS packages,
+# ECR layer pulls, SSM connectivity and CloudWatch Agent delivery. Replace with VPC endpoints.
+# trivy:ignore:AWS-0104:exp:2027-02-01
 resource "aws_security_group" "app" {
   name        = "${local.name}-app-sg"
   description = "Application ingress only from the ALB security group."
@@ -180,6 +183,9 @@ resource "aws_lb_target_group" "app" {
   tags = { Name = "${local.name}-tg" }
 }
 
+# Temporary, time-boxed exception: no customer-controlled domain is available for ACM yet.
+# Remove after HTTPS listener and DNS validation are enabled.
+# trivy:ignore:AWS-0054:exp:2027-02-01
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app.arn
   port              = 80
