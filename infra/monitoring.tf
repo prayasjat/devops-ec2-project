@@ -18,16 +18,16 @@ resource "aws_cloudwatch_dashboard" "operations" {
       {
         type = "metric", x = 0, y = 0, width = 12, height = 6
         properties = {
-          title = "EC2 Auto Scaling Group CPU"
-          view = "timeSeries", region = var.aws_region, period = 300, stat = "Average"
+          title   = "EC2 Auto Scaling Group CPU"
+          view    = "timeSeries", region = var.aws_region, period = 300, stat = "Average"
           metrics = [["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.app.name]]
         }
       },
       {
         type = "metric", x = 12, y = 0, width = 12, height = 6
         properties = {
-          title = "Host memory utilization"
-          view = "timeSeries", region = var.aws_region, period = 300, stat = "Average"
+          title   = "Host memory utilization"
+          view    = "timeSeries", region = var.aws_region, period = 300, stat = "Average"
           metrics = [["CWAgent", "mem_used_percent", "AutoScalingGroupName", aws_autoscaling_group.app.name]]
         }
       },
@@ -35,7 +35,7 @@ resource "aws_cloudwatch_dashboard" "operations" {
         type = "metric", x = 0, y = 6, width = 12, height = 6
         properties = {
           title = "Application request count and target 5xx"
-          view = "timeSeries", region = var.aws_region, period = 60, stat = "Sum"
+          view  = "timeSeries", region = var.aws_region, period = 60, stat = "Sum"
           metrics = [
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.app.arn_suffix],
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", aws_lb.app.arn_suffix, "TargetGroup", aws_lb_target_group.app.arn_suffix]
@@ -46,7 +46,7 @@ resource "aws_cloudwatch_dashboard" "operations" {
         type = "metric", x = 12, y = 6, width = 12, height = 6
         properties = {
           title = "Healthy and unhealthy ALB targets"
-          view = "timeSeries", region = var.aws_region, period = 60, stat = "Average"
+          view  = "timeSeries", region = var.aws_region, period = 60, stat = "Average"
           metrics = [
             ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", aws_lb.app.arn_suffix, "TargetGroup", aws_lb_target_group.app.arn_suffix],
             ["AWS/ApplicationELB", "UnHealthyHostCount", "LoadBalancer", aws_lb.app.arn_suffix, "TargetGroup", aws_lb_target_group.app.arn_suffix]
