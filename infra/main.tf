@@ -121,11 +121,12 @@ resource "aws_security_group" "alb" {
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
+  # ALB should only initiate application traffic toward private application subnets.
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = local.private_cidrs
   }
   tags = { Name = "${local.name}-alb-sg" }
 }
