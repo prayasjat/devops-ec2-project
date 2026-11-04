@@ -7,7 +7,7 @@ on:
     branches: [main, "hardening/**"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   dependency-container-security:
@@ -72,17 +72,8 @@ jobs:
           terraform_version: "1.16.5"
           terraform_wrapper: false
 
-      - name: Format Terraform and save formatting changes to this hardening branch
-        run: |
-          terraform fmt -recursive
-          if ! git diff --quiet -- infra; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add infra
-            git commit -m "style: format Terraform configuration"
-            git push
-          fi
-          terraform fmt -check -recursive
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
 
       - name: Initialize and validate bootstrap stack
         run: |
