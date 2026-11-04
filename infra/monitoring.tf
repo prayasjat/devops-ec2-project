@@ -1,5 +1,11 @@
 # Operational visibility, notifications, CPU scaling, and cost guardrails.
 
+# AWS Budgets API endpoints are available in us-east-1, us-west-2 and ca-central-1.
+provider "aws" {
+  alias  = "billing"
+  region = "us-east-1"
+}
+
 resource "aws_cloudwatch_log_group" "host" {
   name              = "/${var.app_name}/application-host"
   retention_in_days = var.log_retention_days
@@ -120,6 +126,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
 }
 
 resource "aws_budgets_budget" "monthly_cost" {
+  provider     = aws.billing
   count        = trimspace(var.alert_email) == "" ? 0 : 1
   name         = "${var.app_name}-monthly-cost-budget"
   budget_type  = "COST"
