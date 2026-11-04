@@ -128,10 +128,14 @@ jobs:
             command_id="$(aws ssm send-command \
               --instance-ids "$instance_id" \
               --document-name AWS-RunShellScript \
-              --comment "Deploy ${IMAGE_URI}" \
+              --comment "Deploy ${GITHUB_SHA:0:12}" \
               --parameters '{"commands":["sudo /usr/local/bin/deploy-app"]}' \
               --timeout-seconds 900 \
               --query 'Command.CommandId' --output text)"
+            if [[ -z "$command_id" || "$command_id" == "None" ]]; then
+              echo "SSM returned no command ID for ${instance_id}" >&2
+              return 1
+            fi
             echo "SSM command ${command_id} on ${instance_id}"
             status="Pending"
             for attempt in $(seq 1 180); do
