@@ -20,8 +20,8 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWAGE
   "metrics": {
     "namespace": "CWAgent",
     "append_dimensions": {
-      "AutoScalingGroupName": "${aws:AutoScalingGroupName}",
-      "InstanceId": "${aws:InstanceId}"
+      "AutoScalingGroupName": "$${aws:AutoScalingGroupName}",
+      "InstanceId": "$${aws:InstanceId}"
     },
     "aggregation_dimensions": [["AutoScalingGroupName"]],
     "metrics_collected": {
