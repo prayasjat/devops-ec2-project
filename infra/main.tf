@@ -121,15 +121,19 @@ resource "aws_security_group" "alb" {
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
+  # ALB should only initiate application traffic toward private application subnets.
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = local.private_cidrs
   }
   tags = { Name = "${local.name}-alb-sg" }
 }
 
+# Temporary, time-boxed egress exception: private instances currently use NAT for OS packages,
+# ECR layer pulls, SSM connectivity and CloudWatch Agent delivery. Replace with VPC endpoints.
+# trivy:ignore:AWS-0104:exp:2027-02-01
 resource "aws_security_group" "app" {
   name        = "${local.name}-app-sg"
   description = "Application ingress only from the ALB security group."
@@ -179,6 +183,9 @@ resource "aws_lb_target_group" "app" {
   tags = { Name = "${local.name}-tg" }
 }
 
+# Temporary, time-boxed exception: no customer-controlled domain is available for ACM yet.
+# Remove after HTTPS listener and DNS validation are enabled.
+# trivy:ignore:AWS-0054:exp:2027-02-01
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app.arn
   port              = 80
@@ -443,6 +450,7 @@ resource "aws_launch_template" "app" {
     ecr_registry    = local.ecr_registry
     image_parameter = local.image_parameter
     log_group       = aws_cloudwatch_log_group.app.name
+    host_log_group  = aws_cloudwatch_log_group.host.name
     deploy_script   = file("${path.module}/../scripts/deploy-app.sh")
   }))
   tag_specifications {
@@ -453,7 +461,7 @@ resource "aws_launch_template" "app" {
     resource_type = "volume"
     tags          = { Name = "${local.name}-volume", Application = local.name }
   }
-  depends_on = [aws_ssm_parameter.image_uri, aws_iam_role_policy.ec2_app, aws_iam_role_policy_attachment.ssm_core]
+  depends_on = [aws_ssm_parameter.image_uri, aws_iam_role_policy.ec2_app, aws_iam_role_policy_attachment.ssm_core, aws_iam_role_policy_attachment.cloudwatch_agent]
 }
 
 resource "aws_autoscaling_group" "app" {
@@ -496,6 +504,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   threshold           = 5
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.operations_alerts.arn]
   dimensions = {
     LoadBalancer = aws_lb.app.arn_suffix
     TargetGroup  = aws_lb_target_group.app.arn_suffix

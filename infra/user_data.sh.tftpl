@@ -2,9 +2,63 @@
 set -Eeuo pipefail
 exec > >(tee /var/log/devops-project-bootstrap.log | logger -t devops-bootstrap -s 2>/dev/console) 2>&1
 
-dnf install -y docker awscli-2
+dnf install -y docker awscli-2 curl
 systemctl enable --now docker
 systemctl enable --now amazon-ssm-agent || true
+
+# Install and configure CloudWatch Agent for host metrics and bootstrap logs.
+curl --fail --silent --show-error --location \
+  https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm \
+  --output /tmp/amazon-cloudwatch-agent.rpm
+dnf install -y /tmp/amazon-cloudwatch-agent.rpm
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWAGENT_CONFIG'
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "metrics": {
+    "namespace": "CWAgent",
+    "append_dimensions": {
+      "AutoScalingGroupName": "$${aws:AutoScalingGroupName}",
+      "InstanceId": "$${aws:InstanceId}"
+    },
+    "aggregation_dimensions": [["AutoScalingGroupName"]],
+    "metrics_collected": {
+      "cpu": {
+        "measurement": ["cpu_usage_idle", "cpu_usage_user", "cpu_usage_system"],
+        "totalcpu": true,
+        "metrics_collection_interval": 60
+      },
+      "mem": {
+        "measurement": ["mem_used_percent"],
+        "metrics_collection_interval": 60
+      },
+      "disk": {
+        "measurement": ["used_percent"],
+        "resources": ["/"],
+        "metrics_collection_interval": 60
+      }
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/devops-project-bootstrap.log",
+            "log_group_name": "${host_log_group}",
+            "log_stream_name": "{instance_id}-bootstrap"
+          }
+        ]
+      }
+    }
+  }
+}
+CWAGENT_CONFIG
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
 
 cat > /etc/devops-app.conf <<'APP_CONFIG'
 AWS_REGION=${aws_region}

@@ -1,0 +1,95 @@
+name: Security and Terraform Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "hardening/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-container-security:
+    name: Dependency and container security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Audit Python dependencies
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit --strict --requirement requirements.txt
+
+      - name: Build application image
+        run: docker build --pull --tag devops-ec2-project:${{ github.sha }} .
+
+      - name: Generate CycloneDX image SBOM
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: devops-ec2-project:${{ github.sha }}
+          format: cyclonedx
+          output: sbom-image.cdx.json
+          exit-code: "0"
+
+      - name: Scan image for critical vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: devops-ec2-project:${{ github.sha }}
+          format: table
+          vuln-type: os,library
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload image SBOM
+        if: always() && hashFiles('sbom-image.cdx.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-sbom-${{ github.sha }}
+          path: sbom-image.cdx.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  terraform-validation-security:
+    name: Terraform validation and IaC security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.16.5"
+          terraform_wrapper: false
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize and validate bootstrap stack
+        run: |
+          terraform -chdir=infra/bootstrap init -backend=false -input=false
+          terraform -chdir=infra/bootstrap validate -no-color
+
+      - name: Initialize and validate infrastructure stack
+        run: |
+          terraform -chdir=infra init -backend=false -input=false
+          terraform -chdir=infra validate -no-color
+
+      - name: Scan Terraform for critical misconfigurations
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
