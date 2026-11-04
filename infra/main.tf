@@ -497,6 +497,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   threshold           = 5
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.operations_alerts.arn]
   dimensions = {
     LoadBalancer = aws_lb.app.arn_suffix
     TargetGroup  = aws_lb_target_group.app.arn_suffix
