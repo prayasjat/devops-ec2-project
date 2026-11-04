@@ -1,0 +1,22 @@
+#!/bin/bash
+set -Eeuo pipefail
+exec > >(tee /var/log/devops-project-bootstrap.log | logger -t devops-bootstrap -s 2>/dev/console) 2>&1
+
+dnf install -y docker awscli-2
+systemctl enable --now docker
+systemctl enable --now amazon-ssm-agent || true
+
+cat > /etc/devops-app.conf <<'APP_CONFIG'
+AWS_REGION=${aws_region}
+ECR_REGISTRY=${ecr_registry}
+IMAGE_PARAMETER=${image_parameter}
+LOG_GROUP=${log_group}
+APP_NAME=app
+APP_CONFIG
+chmod 600 /etc/devops-app.conf
+
+cat > /usr/local/bin/deploy-app <<'DEPLOY_APP'
+${deploy_script}
+DEPLOY_APP
+chmod 750 /usr/local/bin/deploy-app
+/usr/local/bin/deploy-app

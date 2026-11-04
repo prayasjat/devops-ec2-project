@@ -1,19 +1,14 @@
-# Python
 .venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Secrets
 .env
 .env.*
 !.env.example
 *.pem
 *.key
-
-# Terraform
 .terraform/
 *.tfstate
 *.tfstate.*
@@ -21,6 +16,5 @@ htmlcov/
 !*.example.tfvars
 *.tfplan
 crash.log
-
-# Local AWS configuration
 .aws/
+.DS_Store

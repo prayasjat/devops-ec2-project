@@ -1,0 +1,19 @@
+aws_region         = "ap-south-1"
+app_name           = "devops-ec2-project"
+ecr_repository_name = "devops-ec2-hello-world"
+initial_image_uri  = "632843870789.dkr.ecr.ap-south-1.amazonaws.com/devops-ec2-hello-world@sha256:09cfcec1054214964f68782fce4db79c24075f95e2e6240433fe644cbf600e9b"
+github_owner       = "prayasjat"
+github_repository  = "devops-ec2-project"
+github_owner_id    = "215667995"
+github_repository_id = "1439686976"
+github_branch      = "main"
+instance_type      = "t3.micro"
+desired_capacity   = 2
+min_size           = 2
+max_size           = 4
+nat_gateway_per_az = true
+
+# Public HTTPS requires a registered domain in a Route 53 public hosted zone.
+# Leave empty for HTTP-only bootstrap; populate both values to enable ACM + HTTPS.
+domain_name        = ""
+route53_zone_id    = ""

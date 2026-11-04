@@ -1,6 +1,13 @@
 .venv/
 __pycache__/
-.git/
 .pytest_cache/
+.git/
+.github/
+infra/
+.terraform/
+*.tfstate*
+*.tfvars
 .env
-*.pyc
+.env.*
+*.pem
+*.key
