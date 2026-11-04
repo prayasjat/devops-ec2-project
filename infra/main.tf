@@ -443,6 +443,7 @@ resource "aws_launch_template" "app" {
     ecr_registry    = local.ecr_registry
     image_parameter = local.image_parameter
     log_group       = aws_cloudwatch_log_group.app.name
+    host_log_group  = aws_cloudwatch_log_group.host.name
     deploy_script   = file("${path.module}/../scripts/deploy-app.sh")
   }))
   tag_specifications {
@@ -453,7 +454,7 @@ resource "aws_launch_template" "app" {
     resource_type = "volume"
     tags          = { Name = "${local.name}-volume", Application = local.name }
   }
-  depends_on = [aws_ssm_parameter.image_uri, aws_iam_role_policy.ec2_app, aws_iam_role_policy_attachment.ssm_core]
+  depends_on = [aws_ssm_parameter.image_uri, aws_iam_role_policy.ec2_app, aws_iam_role_policy_attachment.ssm_core, aws_iam_role_policy_attachment.cloudwatch_agent]
 }
 
 resource "aws_autoscaling_group" "app" {
